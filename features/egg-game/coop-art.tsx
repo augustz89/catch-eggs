@@ -35,26 +35,85 @@ export function CoopBackground({ width, height, floorY }: { width: number; heigh
   );
 }
 
-function Hen({ flip }: { flip: boolean }) {
+/** startled: 놀란 지 지난 비율(0~1). null이면 평소처럼 앉아 있다. */
+function Hen({ flip, startled }: { flip: boolean; startled: number | null }) {
+  const scared = startled !== null;
+  // 놀라면 펄쩍 뛰었다 내려앉으며 부르르 떤다.
+  const jump = scared ? Math.sin(Math.PI * startled) * 12 : 0;
+  const shake = scared ? Math.sin(startled * 60) * 2 * (1 - startled) : 0;
   return (
-    <g transform={flip ? "scale(-1 1)" : undefined}>
+    <g transform={`${flip ? "scale(-1 1) " : ""}translate(${shake} ${-jump})`} data-hen-startled={scared || undefined}>
       {/* 꼬리 */}
       <path d="M -24 -10 q -10 -14 -2 -22 q 4 10 10 14 Z" fill="#f2efe8" stroke="#8a7f70" strokeWidth={1.5} />
+      {/* 놀라서 펼친 날개 */}
+      {scared && (
+        <>
+          <path d="M -6 -16 q -16 -22 -30 -18 q 10 8 12 20 Z" fill="#fbf8f2" stroke="#8a7f70" strokeWidth={1.5} />
+          <path d="M 6 -16 q 4 -24 -6 -32 q -4 12 -8 26 Z" fill="#f2efe8" stroke="#8a7f70" strokeWidth={1.5} />
+        </>
+      )}
       {/* 몸통 */}
       <ellipse cx={0} cy={-8} rx={24} ry={16} fill="#fbf8f2" stroke="#8a7f70" strokeWidth={1.5} />
-      <path d="M -12 -10 q 10 10 22 0" fill="none" stroke="#c9c1b4" strokeWidth={2} />
+      {!scared && <path d="M -12 -10 q 10 10 22 0" fill="none" stroke="#c9c1b4" strokeWidth={2} />}
       {/* 머리, 볏, 부리, 눈 */}
       <circle cx={18} cy={-26} r={10} fill="#fbf8f2" stroke="#8a7f70" strokeWidth={1.5} />
       <path d="M 12 -35 q 2 -7 5 -2 q 2 -7 5 -1 q 3 -5 4 2 Z" fill="#e63946" />
-      <path d="M 27 -27 l 8 3 l -8 3 Z" fill="#f4a261" />
+      {scared ? (
+        <>
+          {/* 벌린 부리와 동그랗게 뜬 눈 */}
+          <path d="M 27 -29 l 9 -2 l -9 4 Z M 27 -25 l 9 3 l -9 0 Z" fill="#f4a261" />
+          <circle cx={21} cy={-28} r={4} fill="#ffffff" stroke="#3d2b1f" strokeWidth={1} />
+          <circle cx={22} cy={-28} r={1.6} fill="#3d2b1f" />
+          {/* 깜짝 표시 */}
+          <text x={flip ? -30 : 30} y={-42} transform={flip ? "scale(-1 1)" : undefined} textAnchor="middle" fill="#e63946" fontSize={18} fontWeight={800}>!</text>
+        </>
+      ) : (
+        <>
+          <path d="M 27 -27 l 8 3 l -8 3 Z" fill="#f4a261" />
+          <circle cx={21} cy={-28} r={1.8} fill="#3d2b1f" />
+        </>
+      )}
       <path d="M 22 -20 q 2 6 -1 8 q -3 -3 -1 -8 Z" fill="#e63946" />
-      <circle cx={21} cy={-28} r={1.8} fill="#3d2b1f" />
     </g>
   );
 }
 
-/** 나무 둥지 상자 안에 짚을 깔고 암탉이 앉아 있는 산란장 한 칸. (x, y)는 계란이 나오는 출구. */
-export function NestBox({ x, y, side }: { x: number; y: number; side: "left" | "right" }) {
+/** 놀란 닭에서 날리는 깃털 두어 개. */
+function Feathers({ startled }: { startled: number }) {
+  return (
+    <g opacity={1 - startled}>
+      {[-14, 4, 18].map((dx, i) => (
+        <ellipse
+          key={dx}
+          cx={dx + startled * (i - 1) * 14}
+          cy={-30 - startled * 18 + i * 4}
+          rx={4}
+          ry={1.6}
+          transform={`rotate(${30 + i * 50 + startled * 120} ${dx} -30)`}
+          fill="#fbf8f2"
+          stroke="#8a7f70"
+          strokeWidth={0.8}
+        />
+      ))}
+    </g>
+  );
+}
+
+/**
+ * 나무 둥지 상자 안에 짚을 깔고 암탉이 앉아 있는 산란장 한 칸. (x, y)는 계란이 나오는 출구.
+ * startled가 있으면 이 칸의 암탉이 화들짝 놀란다.
+ */
+export function NestBox({
+  x,
+  y,
+  side,
+  startled = null,
+}: {
+  x: number;
+  y: number;
+  side: "left" | "right";
+  startled?: number | null;
+}) {
   const flip = side === "right";
   const left = flip ? x : x - NEST_WIDTH;
   return (
@@ -62,11 +121,16 @@ export function NestBox({ x, y, side }: { x: number; y: number; side: "left" | "
       <rect x={left} y={y - NEST_HEIGHT + 10} width={NEST_WIDTH} height={NEST_HEIGHT} fill="#7a4a2a" />
       <rect x={left + 4} y={y - NEST_HEIGHT + 14} width={NEST_WIDTH - 8} height={NEST_HEIGHT - 8} fill="#4a2c18" />
       <g transform={`translate(${left + NEST_WIDTH / 2} ${y + 2})`}>
-        <Hen flip={flip} />
+        <Hen flip={flip} startled={startled} />
       </g>
       {/* 짚 둥지 */}
       <path d={`M ${left + 4} ${y + 4} q ${NEST_WIDTH / 2 - 4} -12 ${NEST_WIDTH - 8} 0 v 6 h -${NEST_WIDTH - 8} Z`} fill="#e6c36a" stroke="#b8913f" strokeWidth={1.5} />
       <rect x={left} y={y + 8} width={NEST_WIDTH} height={6} fill="#8d5a34" />
+      {startled !== null && (
+        <g transform={`translate(${left + NEST_WIDTH / 2} ${y + 2})`}>
+          <Feathers startled={startled} />
+        </g>
+      )}
     </g>
   );
 }

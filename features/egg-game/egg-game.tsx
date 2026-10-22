@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 
 import { CoopBackground, NEST_WIDTH, NestBox } from "./coop-art";
 import {
+  BREAK_EFFECT_MS,
   LANE_KEYS,
   MAX_BROKEN,
   advance,
@@ -83,6 +84,12 @@ export function EggGame() {
 
   const catcherX = LANES[game.catcherLane].end.x;
 
+  // 계란이 깨진 통로의 암탉만, 깨짐 효과가 보이는 동안 놀란다.
+  function startledAge(lane: number) {
+    const effect = game.effects.findLast((e) => e.lane === lane);
+    return effect ? Math.min((game.now - effect.at) / BREAK_EFFECT_MS, 1) : null;
+  }
+
   return (
     <section className="flex w-full max-w-3xl flex-col gap-4" data-status={game.status} data-testid="egg-game">
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -109,7 +116,7 @@ export function EggGame() {
             <g key={lane}>
               <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="#6f4426" strokeWidth={14} strokeLinecap="round" />
               <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="#b07a4a" strokeWidth={8} strokeLinecap="round" />
-              <NestBox x={start.x} y={start.y} side={lane < 3 ? "left" : "right"} />
+              <NestBox x={start.x} y={start.y} side={lane < 3 ? "left" : "right"} startled={startledAge(lane)} />
               <text x={end.x} y={HEIGHT - 12} textAnchor="middle" fill="#5c3a1e" className="text-[18px] font-semibold uppercase">
                 {LANE_KEYS[lane]}
               </text>
@@ -129,7 +136,7 @@ export function EggGame() {
           })}
 
           {game.effects.map((effect) => {
-            const age = Math.min((game.now - effect.at) / 700, 1);
+            const age = Math.min((game.now - effect.at) / BREAK_EFFECT_MS, 1);
             const x = LANES[effect.lane].end.x;
             return (
               <g key={effect.id} opacity={1 - age} transform={`translate(${x} ${FLOOR_Y + 22})`} data-testid="broken-effect">

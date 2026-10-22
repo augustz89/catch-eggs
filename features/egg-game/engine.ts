@@ -12,7 +12,7 @@ const MIN_INTERVAL_MS = 1000 / 3;
 // 한 바퀴 1초라 통로 길이(4~6초)가 도착 간격(3초)보다 길어서, 여러 통로에 계란이 함께 굴러간다.
 const BASE_TURN_MS = 1000;
 const MIN_TURN_MS = 150;
-const BREAK_EFFECT_MS = 700;
+export const BREAK_EFFECT_MS = 700;
 
 export type GameStatus = "ready" | "playing" | "over";
 
